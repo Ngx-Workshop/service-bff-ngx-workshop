@@ -31,13 +31,26 @@ jobs:
           script: |
             cd /opt/ngx-nestjs-services/ngx-workshop-bff
 
+            echo "🌐 Ensuring shared Docker network exists..."
+            docker network ls | grep -q "ngx-net" || docker network create ngx-net
+
             echo "🔑 Writing .env from GitHub secrets..."
             echo "PORT=${{ secrets.PORT }}" > .env
             echo "AUTH_BASE_URL=${{ secrets.AUTH_BASE_URL }}" >> .env
             echo "MFE_ORCHESTRATOR_URL=${{ secrets.MFE_ORCHESTRATOR_URL }}" >> .env
 
+            echo "🔗 Connecting peer services to ngx-net (ignore errors if not present)..."
+            docker network connect ngx-net ngx-mfe-orchestrator 2>/dev/null || true
+            docker network connect ngx-net ngx-auth-service 2>/dev/null || true
+
             echo "🚀 Building and starting container..."
             docker build -t ngx-workshop-bff .
             docker stop ngx-workshop-bff || true
             docker rm ngx-workshop-bff || true
-            docker run -d --name ngx-workshop-bff --env-file .env -p 3002:3002 ngx-workshop-bff
+            docker run -d \
+              --name ngx-workshop-bff \
+              --env-file .env \
+              --network ngx-net \
+              --restart unless-stopped \
+              -p 3002:3002 \
+              ngx-workshop-bff
