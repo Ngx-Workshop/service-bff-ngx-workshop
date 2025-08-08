@@ -1,7 +1,6 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, map, tap } from 'rxjs';
 import { IMfeRemote } from './interfaces/mfe-remote.interface';
 
 @Injectable()
@@ -12,8 +11,11 @@ export class AppService {
     const url = `${process.env.MFE_ORCHESTRATOR_URL}/mfe-remotes`;
 
     console.log(`Fetching MFE remotes from: ${url}`);
-    return this.httpService
-      .get<IMfeRemote[]>(url)
-      .pipe(map((response) => response.data));
+    return this.httpService.get<IMfeRemote[]>(url).pipe(
+      tap((response) => {
+        console.log(`Received ${response.data.length} MFE remotes`);
+      }),
+      map((response) => response.data)
+    );
   }
 }
