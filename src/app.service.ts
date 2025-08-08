@@ -11,6 +11,7 @@ export class AppService {
   getMFERemotes(): Observable<IMfeRemote[]> {
     const url = `${process.env.MFE_ORCHESTRATOR_URL}/mfe-remotes`;
 
+    console.log(`Fetching MFE remotes from: ${url}`);
     return this.httpService
       .get<IMfeRemote[]>(url)
       .pipe(map((response) => response.data));
