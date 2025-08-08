@@ -13,8 +13,11 @@ export class AppService {
   ) {}
 
   getMFERemotes(): Observable<IMfeRemote[]> {
-    const authBaseUrl = this.configService.get<string>('AUTH_BASE_URL');
-    const url = `${authBaseUrl}/mfe-remotes`;
+    const mfeOrchestratorUrl = this.configService.get<string>(
+      'MFE_ORCHESTRATOR_URL'
+    );
+    console.log('MFE_ORCHESTRATOR_URL:', mfeOrchestratorUrl);
+    const url = `${mfeOrchestratorUrl}/mfe-remotes`;
 
     return this.httpService
       .get<IMfeRemote[]>(url)
