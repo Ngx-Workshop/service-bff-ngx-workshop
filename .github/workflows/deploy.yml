@@ -19,8 +19,8 @@ jobs:
           host: ${{ secrets.DROPLET_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "."
-          target: "/opt/ngx-nestjs-services/ngx-workshop-bff"
+          source: '.'
+          target: '/opt/ngx-nestjs-services/ngx-workshop-bff'
 
       - name: SSH and Deploy
         uses: appleboy/ssh-action@master
@@ -33,13 +33,8 @@ jobs:
 
             echo "🔑 Writing .env from GitHub secrets..."
             echo "PORT=${{ secrets.PORT }}" > .env
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-            echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
-            echo "JWT_ISSUER=${{ secrets.JWT_ISSUER }}" >> .env
-            echo "JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}" >> .env
-            echo "JWT_ACCESS_TOKEN_TTL=${{ secrets.JWT_ACCESS_TOKEN_TTL }}" >> .env
-            echo "JWT_REFRESH_TOKEN_TTL=${{ secrets.JWT_REFRESH_TOKEN_TTL }}" >> .env
             echo "AUTH_BASE_URL=${{ secrets.AUTH_BASE_URL }}" >> .env
+            echo "MFE_ORCHESTRATOR_URL=${{ secrets.MFE_ORCHESTRATOR_URL }}" >> .env
 
             echo "🚀 Building and starting container..."
             docker build -t ngx-workshop-bff .
