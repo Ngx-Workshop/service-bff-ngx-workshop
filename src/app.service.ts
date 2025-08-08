@@ -13,7 +13,7 @@ export class AppService {
     console.log(`Fetching MFE remotes from: ${url}`);
     return this.httpService.get<IMfeRemote[]>(url).pipe(
       tap((response) => {
-        console.log(`Received ${response.data.length} MFE remotes`);
+        console.log(`Received ${response.data} MFE remotes`);
       }),
       map((response) => response.data)
     );
