@@ -8,7 +8,7 @@ export class AppService {
   constructor(private readonly httpService: HttpService) {}
 
   getMFERemotes(): Observable<IMfeRemote[]> {
-    const url = `${process.env.MFE_ORCHESTRATOR_URL}/api/mfe-remotes`;
+    const url = `${process.env.MFE_ORCHESTRATOR_URL}/mfe-remotes`;
 
     console.log(`Fetching MFE remotes from: ${url}`);
     return this.httpService.get<IMfeRemote[]>(url).pipe(
