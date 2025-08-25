@@ -1,7 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { AppService } from './app.service';
-import { IMfeRemote } from './interfaces/mfe-remote.interface';
+
+import type { MfeRemoteDto } from '@tmdjr/ngx-mfe-orchestrator-contracts';
 
 @Controller()
 export class AppController {
@@ -13,7 +14,7 @@ export class AppController {
   }
 
   @Get('mfe-remotes')
-  getMFERemotes(): Observable<IMfeRemote[]> {
+  getMFERemotes(): Observable<MfeRemoteDto[]> {
     return this.appService.getMFERemotes();
   }
 }
