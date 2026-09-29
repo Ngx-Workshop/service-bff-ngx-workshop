@@ -1,52 +1,118 @@
-name: Deploy Ngx Workshop BFF
+name: Deploy service-bff-ngx-workshop
 
 on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: service-bff-ngx-workshop-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
-
-      - name: Copy to Droplet
-        uses: appleboy/scp-action@master
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+
+      - name: Prepare source and private runtime configuration
+        env:
+          PORT: ${{ secrets.PORT }}
+          AUTH_BASE_URL: ${{ secrets.AUTH_BASE_URL }}
+          MFE_ORCHESTRATOR_URL: ${{ secrets.MFE_ORCHESTRATOR_URL }}
+          SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          umask 077
+
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          names = ("PORT", "AUTH_BASE_URL", "MFE_ORCHESTRATOR_URL")
+          for name in (*names, "SSH_HOST_FINGERPRINT"):
+              value = os.environ.get(name, "")
+              if not value or any(c in value for c in ("\r", "\n", "\0")):
+                  raise SystemExit(f"Missing or invalid {name}")
+
+          if os.environ["PORT"] != "3002":
+              raise SystemExit("PORT must be 3002 for this deployment")
+
+          path = Path(".env.next")
+          path.write_text(
+              "".join(f"{name}={os.environ[name]}\n" for name in names)
+          )
+          path.chmod(0o600)
+          PY
+
+          git archive --format=tar --output=deploy-source.tar HEAD
+
+      - name: Copy source and runtime configuration
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+        with:
+          version: '1.8.0'
           host: ${{ secrets.DROPLET_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: '.'
+          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          source: 'deploy-source.tar,.env.next'
           target: '/opt/ngx-nestjs-services/ngx-workshop-bff'
+          overwrite: true
 
-      - name: SSH and Deploy
-        uses: appleboy/ssh-action@master
+      - name: Build and recreate service
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
+          version: '1.8.2'
           host: ${{ secrets.DROPLET_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          command_timeout: 20m
           script: |
+            set -eu
+            umask 077
             cd /opt/ngx-nestjs-services/ngx-workshop-bff
+            trap 'rm -f .env.next deploy-source.tar' EXIT
 
-            echo "🌐 Ensuring shared Docker network exists..."
-            docker network ls | grep -q "ngx-net" || docker network create ngx-net
+            chmod 600 .env.next
+            tar -xf deploy-source.tar
+            rm -f deploy-source.tar
+            test -f .dockerignore
 
-            echo "🔑 Writing .env from GitHub secrets..."
-            echo "PORT=${{ secrets.PORT }}" > .env
-            echo "AUTH_BASE_URL=${{ secrets.AUTH_BASE_URL }}" >> .env
-            echo "MFE_ORCHESTRATOR_URL=${{ secrets.MFE_ORCHESTRATOR_URL }}" >> .env
+            docker network inspect ngx-net >/dev/null 2>&1 || {
+              docker network create ngx-net ||
+                docker network inspect ngx-net >/dev/null
+            }
 
-            echo "🔗 Connecting peer services to ngx-net (ignore errors if not present)..."
             docker network connect ngx-net ngx-mfe-orchestrator 2>/dev/null || true
             docker network connect ngx-net ngx-auth-service 2>/dev/null || true
 
-            echo "🚀 Building and starting container..."
             docker build -t ngx-workshop-bff .
-            docker stop ngx-workshop-bff || true
-            docker rm ngx-workshop-bff || true
+
+            if docker container inspect ngx-workshop-bff >/dev/null 2>&1; then
+              previous_image=$(docker inspect --format '{{.Image}}' ngx-workshop-bff)
+              docker image tag "$previous_image" ngx-workshop-bff:previous
+            fi
+            if [ -f .env ]; then
+              install -m 600 .env .env.previous
+            fi
+            install -m 600 .env.next .env
+            rm -f .env.next
+
+            if docker container inspect ngx-workshop-bff >/dev/null 2>&1; then
+              docker stop ngx-workshop-bff
+              docker rm ngx-workshop-bff
+            fi
+
             docker run -d \
               --name ngx-workshop-bff \
               --env-file .env \
@@ -54,3 +120,27 @@ jobs:
               --restart unless-stopped \
               -p 3002:3002 \
               ngx-workshop-bff
+
+            attempt=0
+            until docker exec ngx-workshop-bff node -e '
+              const net = require("node:net");
+              const socket = net.connect(3002, "127.0.0.1");
+              socket.setTimeout(2000);
+              socket.on("connect", () => {
+                socket.end();
+                process.exit(0);
+              });
+              socket.on("error", () => process.exit(1));
+              socket.on("timeout", () => process.exit(1));
+            ' >/dev/null 2>&1; do
+              attempt=$((attempt + 1))
+              if [ "$attempt" -ge 30 ]; then
+                echo "Service failed its startup check" >&2
+                exit 1
+              fi
+              sleep 2
+            done
+
+      - name: Remove temporary deployment files
+        if: always()
+        run: rm -f .env.next deploy-source.tar
