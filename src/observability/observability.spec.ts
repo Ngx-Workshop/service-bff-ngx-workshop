@@ -1,3 +1,5 @@
+import { AppController } from '../app.controller';
+import { AppService } from '../app.service';
 import type { Server } from 'node:http';
 import { Controller, Get, INestApplication, Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -23,7 +25,8 @@ describe('Service observability', () => {
   beforeAll(async () => {
     const module = await Test.createTestingModule({
       imports: [ObservabilityModule],
-      controllers: [TestController],
+      controllers: [TestController, AppController],
+      providers: [{ provide: AppService, useValue: {} }],
     }).compile();
     app = module.createNestApplication({ logger: false });
     app.use(httpLoggingMiddleware({ log, warn, error } as unknown as Logger));

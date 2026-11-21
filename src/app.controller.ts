@@ -8,11 +8,6 @@ import type { MfeRemoteDto } from '@tmdjr/ngx-mfe-orchestrator-contracts';
 export class AppController {
   constructor(private appService: AppService) {}
 
-  @Get('health')
-  healthCheck(): string {
-    return 'OK';
-  }
-
   @Get('mfe-remotes')
   getMFERemotes(): Observable<MfeRemoteDto[]> {
     return this.appService.getMFERemotes();
