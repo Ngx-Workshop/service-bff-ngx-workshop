@@ -30,3 +30,5 @@ with Husky/lint-staged, CI checks and safe domain logging through existing
 observability. Maintenance is implemented with local evidence. Actual Docker-image
 and live upstream/Grafana checks remain external verification; no next implementation
 task has been selected.
+
+Current deployment policy: [deployment-workflows](docs/deployment-workflows.md). Automatic main delivery verifies/deploys; npm publication is manual only. This supersedes older automatic-publishing instructions.

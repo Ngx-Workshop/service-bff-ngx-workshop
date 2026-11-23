@@ -67,3 +67,5 @@ Docker CLI exists but its daemon is unreachable; package-only installation is
 verified, an actual pinned-image build is not. CI is configured, not remotely run.
 Live upstream and Grafana ingestion require external owners; no paid calls or
 production writes were used. See [handoff](../specs/001-code-maintenance/handoff.md).
+
+Deployment and npm publication now follow [deployment-workflows](deployment-workflows.md).

@@ -49,3 +49,5 @@ context. The anonymous GET/HEAD heartbeat remains dependency-free liveness.
 [Audit](../specs/001-code-maintenance/audit.md) and
 [handoff](../specs/001-code-maintenance/handoff.md) contain baseline findings and
 local-versus-live verification limits; this is not a full security certification.
+
+Generated deployment orchestration is centrally managed by the Node CLI; see [deployment-workflows](deployment-workflows.md).
