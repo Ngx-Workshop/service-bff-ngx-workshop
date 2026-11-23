@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+coverage/
+.husky/_/
+package-lock.json
+**/generated/
+**/contracts/generated/
+vendor/
+public/vendor/

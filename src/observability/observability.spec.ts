@@ -1,7 +1,7 @@
 import { AppController } from '../app.controller';
 import { AppService } from '../app.service';
 import type { Server } from 'node:http';
-import { Controller, Get, INestApplication, Logger } from '@nestjs/common';
+import { Controller, Get, INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 // eslint-disable-next-line @typescript-eslint/no-require-imports -- Match callable Supertest in CommonJS service builds.
 import request = require('supertest');
@@ -29,7 +29,7 @@ describe('Service observability', () => {
       providers: [{ provide: AppService, useValue: {} }],
     }).compile();
     app = module.createNestApplication({ logger: false });
-    app.use(httpLoggingMiddleware({ log, warn, error } as unknown as Logger));
+    app.use(httpLoggingMiddleware({ log, warn, error }));
     await app.init();
   });
   afterAll(async () => {

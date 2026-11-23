@@ -1,6 +1,13 @@
 import { ConsoleLogger, INestApplication, Logger } from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { randomUUID } from 'node:crypto';
+
+const requestContext = new AsyncLocalStorage<{ requestId: string }>();
+
+export function currentRequestId(): string | undefined {
+  return requestContext.getStore()?.requestId;
+}
 
 export function createServiceLogger(): ConsoleLogger {
   return new ConsoleLogger({
@@ -10,7 +17,9 @@ export function createServiceLogger(): ConsoleLogger {
   });
 }
 
-export function httpLoggingMiddleware(logger = new Logger('HTTP')) {
+export function httpLoggingMiddleware(
+  logger: Pick<Logger, 'log' | 'warn' | 'error'> = new Logger('HTTP')
+) {
   return (request: Request, response: Response, next: NextFunction): void => {
     // Heartbeats are represented by probe metrics, not repetitive access logs.
     if (
@@ -38,7 +47,7 @@ export function httpLoggingMiddleware(logger = new Logger('HTTP')) {
       else if (entry.statusCode >= 400) logger.warn(entry);
       else logger.log(entry);
     });
-    next();
+    requestContext.run({ requestId }, next);
   };
 }
 

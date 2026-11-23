@@ -1,9 +1,7 @@
 import { ObservabilityModule } from './observability/observability.module';
-import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+import { MfeRemotesModule } from './mfe-remotes.module';
 
 @Module({
   imports: [
@@ -12,9 +10,7 @@ import { AppService } from './app.service';
       isGlobal: true,
       envFilePath: '.env',
     }),
-    HttpModule,
+    MfeRemotesModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
 })
 export class AppModule {}
